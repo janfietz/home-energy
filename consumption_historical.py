@@ -136,7 +136,7 @@ def store_in_influxdb(data, bucket_name, url, token, org):
             if price_level == 'unknown':
                 logging.warning("No price level found for %s", record['from'])
                 return
-            if float(record['consumption']) is not None:
+            if record['consumption'] is not None and float(record['consumption']) is not None:
                 influx_record = {
                     "measurement": "historical_consumption",
                     "time": record['from'],

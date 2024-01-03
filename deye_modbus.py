@@ -358,7 +358,12 @@ try:
     if response:
         fields = get_fields_from_response(response)
         logging.debug("Fields: %s", fields)
-        store_in_influxdb(fields, args.influxdb_bucket, args.influxdb_url, args.influxdb_token, args.influxdb_org, args.unit)
+
+        # do some sanity checks
+        if float(fields['pv2_total_energy']) > 0:
+            store_in_influxdb(fields, args.influxdb_bucket, args.influxdb_url, args.influxdb_token, args.influxdb_org, args.unit)
+        else:
+            exit(-1)
     else:
         logging.warning("No response received")
         exit(-1)

@@ -33,8 +33,8 @@ def parse_modbus_read_holding_registers_response(frame: bytes, first_reg: int, l
         reg_count = last_reg - first_reg + 1
         expected_frame_data_len = 2 + 1 + reg_count * 2
         if len(frame) < expected_frame_data_len + 2:  # 2 bytes for crc
-            logging.error("Modbus frame is too short")
-            return registers
+            logging.error(f"Modbus frame is too short: {len(frame)} bytes received, {expected_frame_data_len} expected: {frame.hex()}")
+            raise ValueError("Modbus frame is too short")
 
         # Verify that the crc is correct
         actual_crc = int.from_bytes(frame[expected_frame_data_len : expected_frame_data_len + 2], "little")
@@ -43,8 +43,8 @@ def parse_modbus_read_holding_registers_response(frame: bytes, first_reg: int, l
             logging.error(
                 "Modbus frame crc is not valid. Expected {:04x}, got {:04x}".format(expected_crc, actual_crc)
             )
-            return registers
-
+            raise ValueError("Modbus frame crc is not valid")
+        
         # Parse the register values from the frame
         registers = {}
         a = 0
@@ -126,10 +126,14 @@ class DeyeAtConnector():
             self.__send_at_command(
                 client_socket, bytes(f"AT+INVDATA={int(len(modbus_frame_str) / 2)},{modbus_frame_str}\n", "ascii")
             )
-            time.sleep(1)
+            time.sleep(1/10.0)
             at_response = self.__receive_at_response(client_socket)
             if not at_response or at_response.startswith(b"+ok=no data"):
-                return modbus_response
+                logging.warning(f'No data received for request: {at_response}')
+                return None
+            if at_response.startswith(b"+ERR="):
+                logging.warning(f'Error received for request: {at_response}')
+                return None
             if at_response.startswith(b"+ok="):
                 modbus_response = DeyeAtConnector.extract_modbus_respose(at_response)
                 logging.debug("Extracted Modbus response %s", modbus_response.hex())
@@ -167,7 +171,7 @@ def read_holding_registers(connector: DeyeAtConnector, first_reg: int, last_reg:
 
         modbus_resp_frame = connector.send_request(modbus_frame + modbus_crc)
         if modbus_resp_frame is None:
-            return {}
+            return None
         return parse_modbus_read_holding_registers_response(modbus_resp_frame, first_reg, last_reg)
 
     

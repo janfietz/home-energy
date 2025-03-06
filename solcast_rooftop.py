@@ -150,7 +150,7 @@ def parse_forecasts(forecasts_data):
     
     for forecast in forecasts_data['forecasts']:
         # Parse the period_end timestamp
-        period_end = datetime.fromisoformat(forecast['period_end'].replace('Z', '+00:00'))
+        period_end = datetime.strptime(forecast['period_end'].replace('.0000000Z', '+00:00'), '%Y-%m-%dT%H:%M:%S%z')
         
         # Parse the period (assuming ISO 8601 duration format)
         period_duration = timedelta(minutes=int(forecast['period'][2:-1]))
